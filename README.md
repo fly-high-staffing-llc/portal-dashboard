@@ -27,7 +27,7 @@ Below are sample screens from the Dealer Inventory & Vendor Intelligence Portal 
 
 ---
 
-## �� Project Structure
+## 📦 Project Structure
 - `frontend-web/` – React (Vite, TypeScript, TailwindCSS)
 - `frontend-mobile/` – React Native (Expo, TypeScript)
 - `middleware/` – Node.js/Express (API Gateway, if present)
