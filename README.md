@@ -110,9 +110,14 @@ choco install git
 ### 1. Clone and Initial Setup
 
 ```bash
-# Clone the repository
+# Clone the repository (choose one)
 git clone https://github.com/shriram976/portal-dashboard.git
+# OR
+git clone https://github.com/shriram976/flyhigh-portal-dashboard.git
+
 cd portal-dashboard
+# OR
+cd flyhigh-portal-dashboard
 
 # Make setup script executable
 chmod +x scripts/setup.sh
