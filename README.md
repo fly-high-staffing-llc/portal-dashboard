@@ -22,6 +22,9 @@ Below are sample screens from the Dealer Inventory & Vendor Intelligence Portal 
 ### Add/Edit Vendor & Inventory (Web & Mobile)
 ![Add/Edit Vendor & Inventory](docs/screenshots/add_edit_vendor_inventory.png)
 
+### 📄 Design Document (PDF)
+[Download/View the full design PDF](docs/screenshots/dealer_portal_design.pdf)
+
 ---
 
 ## 📦 Project Structure
