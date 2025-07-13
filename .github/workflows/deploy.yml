@@ -1,0 +1,229 @@
+name: Dealer Portal CI/CD
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  # Backend Tests
+  backend-test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up JDK 11
+      uses: actions/setup-java@v3
+      with:
+        java-version: '11'
+        distribution: 'temurin'
+    
+    - name: Cache Maven packages
+      uses: actions/cache@v3
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+    
+    - name: Run backend tests
+      run: |
+        cd backend
+        ./mvnw clean test
+    
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: backend-test-results
+        path: backend/target/surefire-reports/
+
+  # Frontend Web Tests
+  frontend-web-test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '16'
+        cache: 'npm'
+        cache-dependency-path: frontend-web/package-lock.json
+    
+    - name: Install dependencies
+      run: |
+        cd frontend-web
+        npm ci
+    
+    - name: Run tests
+      run: |
+        cd frontend-web
+        npm test -- --coverage
+    
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v3
+      with:
+        file: frontend-web/coverage/lcov.info
+        flags: frontend-web
+        name: frontend-web-coverage
+
+  # Frontend Mobile Tests
+  frontend-mobile-test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '16'
+        cache: 'npm'
+        cache-dependency-path: frontend-mobile/package-lock.json
+    
+    - name: Install dependencies
+      run: |
+        cd frontend-mobile
+        npm ci
+    
+    - name: Run tests
+      run: |
+        cd frontend-mobile
+        npm test -- --coverage
+    
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v3
+      with:
+        file: frontend-mobile/coverage/lcov.info
+        flags: frontend-mobile
+        name: frontend-mobile-coverage
+
+  # Lint and Format Check
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '16'
+        cache: 'npm'
+    
+    - name: Lint frontend-web
+      run: |
+        cd frontend-web
+        npm ci
+        npm run lint
+    
+    - name: Lint frontend-mobile
+      run: |
+        cd frontend-mobile
+        npm ci
+        npm run lint
+
+  # Build Applications
+  build:
+    needs: [backend-test, frontend-web-test, frontend-mobile-test, lint]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+    - uses: actions/checkout@v3
+    
+    # Build Backend
+    - name: Set up JDK 11
+      uses: actions/setup-java@v3
+      with:
+        java-version: '11'
+        distribution: 'temurin'
+    
+    - name: Build backend JAR
+      run: |
+        cd backend
+        ./mvnw clean package -DskipTests
+    
+    - name: Upload backend artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: backend-jar
+        path: backend/target/*.jar
+    
+    # Build Frontend Web
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '16'
+        cache: 'npm'
+        cache-dependency-path: frontend-web/package-lock.json
+    
+    - name: Build frontend-web
+      run: |
+        cd frontend-web
+        npm ci
+        npm run build
+    
+    - name: Upload frontend-web artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: frontend-web-build
+        path: frontend-web/dist/
+
+  # Deploy to Development
+  deploy-dev:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop'
+    environment: development
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Download artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: backend-jar
+    
+    - name: Deploy to development server
+      run: |
+        echo "Deploying to development environment..."
+        # Add deployment steps here
+        # Example: scp, docker push, etc.
+
+  # Deploy to Production
+  deploy-prod:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Download artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: backend-jar
+    
+    - name: Deploy to production server
+      run: |
+        echo "Deploying to production environment..."
+        # Add deployment steps here
+        # Example: scp, docker push, etc.
+
+  # Security Scan
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+    
+    - name: Upload Trivy scan results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v2
+      if: always()
+      with:
+        sarif_file: 'trivy-results.sarif' 
