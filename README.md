@@ -111,8 +111,8 @@ choco install git
 
 ```bash
 # Clone the repository
-git clone <repository-url>
-cd project1_tech
+git clone https://github.com/shriram976/portal-dashboard.git
+cd portal-dashboard
 
 # Make setup script executable
 chmod +x scripts/setup.sh
